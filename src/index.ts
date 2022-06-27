@@ -1,28 +1,29 @@
-import cors from 'cors'
-import express from 'express'
-import helmet from 'helmet'
+import express, { Request, Response } from 'express'
 import morgan from 'morgan'
+import { JobData } from 'types/jobTask'
 import { env } from './config'
-import { errorHandler, logErrors, wrapErrors } from './middlewares/errorHandler'
-import { notFoundHandler } from './middlewares/notFound'
-import { router } from './routes'
+import { queue } from './helpers/queue'
 import { logger } from './utils/logger'
 
 const app = express()
 
-app.use(cors())
-app.use(helmet())
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-if (!env.isDev) app.use(morgan('tiny'))
-else app.use(morgan('dev'))
+app.post('/queue', (req: Request, res: Response ): void => {
 
-router(app)
+  const jobData = req.body as JobData
 
-app.use(notFoundHandler)
-app.use(logErrors)
-app.use(wrapErrors)
-app.use(errorHandler)
+  queue.addTask(jobData)
+    .then((job) => {
+      logger.info({ jobID: job.id, jobName: job.name, jobData: job.data })
+      res.status(200).json({ data: { msg: 'queued successfully', jobId: job.id }, status: 'queued' })
+    })
+  .catch(e => console.log(e))
+})
+
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
+app.use(morgan('dev'))
 
 app.listen(env.port, () => logger.info(`Server at localhost:${env.port}`))

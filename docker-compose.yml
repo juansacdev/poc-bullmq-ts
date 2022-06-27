@@ -1,12 +1,24 @@
 version: '3.8'
 
 services:
+  redis:
+    container_name: redis
+    restart: always
+    image: redis:latest
+    ports:
+      - 6379:6379
+    volumes:
+      - redis_data:/data
   db:
     container_name: db
     image: postgres:13
     restart: always
     env_file:
       - .env
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
     ports:
       - ${DB_PORT}:${DB_PORT}
     volumes:
@@ -20,6 +32,7 @@ services:
       dockerfile: Dockerfile.dev
     depends_on:
       - db
+      - redis
     env_file:
       - .env
     ports:
@@ -30,3 +43,4 @@ services:
 
 volumes:
   db_data: {}
+  redis_data: {}
